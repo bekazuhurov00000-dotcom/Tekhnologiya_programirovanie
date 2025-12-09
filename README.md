@@ -1,1 +1,0 @@
-# Tekhnologiya_programirovanie
