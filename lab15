@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8" />
+    <title>Task Manager</title>
+</head>
+<body>
+    <h1>Список задач</h1>
+
+    <form id="taskForm">
+        <input type="text" id="taskInput" placeholder="Введите задачу" required />
+        <button type="submit">Добавить</button>
+    </form>
+
+    <input type="text" id="searchInput" placeholder="Поиск..." />
+
+    <ul id="taskList"></ul>
+
+    <!-- ===============================
+         МОДУЛЬ 1: Работа с данными
+         =============================== -->
+    <script type="module" id="dataModule">
+        export class TaskManager {
+            constructor() {
+                const saved = JSON.parse(localStorage.getItem("tasks")) || [];
+                this.tasks = new Map(saved.map(t => [t.id, t]));
+            }
+
+            save() {
+                localStorage.setItem("tasks", JSON.stringify([...this.tasks.values()]));
+            }
+
+            addTask(text) {
+                const task = { id: Date.now(), text };
+                this.tasks.set(task.id, task);
+                this.save();
+                return task;
+            }
+
+            deleteTask(id) {
+                this.tasks.delete(id);
+                this.save();
+            }
+
+            filterTasks(query) {
+                return [...this.tasks.values()].filter(t =>
+                    t.text.toLowerCase().includes(query.toLowerCase())
+                );
+            }
+
+            getAll() {
+                return [...this.tasks.values()];
+            }
+        }
+    </script>
+
+    <!-- ===============================
+         МОДУЛЬ 2: UI
+         =============================== -->
+    <script type="module" id="uiModule">
+        export function renderTasks(listElement, tasks, deleteHandler) {
+            listElement.innerHTML = "";
+            tasks.forEach(task => {
+                const li = document.createElement("li");
+                li.textContent = task.text;
+
+                const btn = document.createElement("button");
+                btn.textContent = "Удалить";
+                btn.onclick = () => deleteHandler(task.id);
+
+                li.appendChild(btn);
+                listElement.appendChild(li);
+            });
+        }
+    </script>
+
+    <!-- ===============================
+         МОДУЛЬ 3: Приложение
+         =============================== -->
+    <script type="module">
+        import { TaskManager } from "#dataModule";
+        import { renderTasks } from "#uiModule";
+
+        const taskManager = new TaskManager();
+
+        const form = document.getElementById("taskForm");
+        const taskInput = document.getElementById("taskInput");
+        const searchInput = document.getElementById("searchInput");
+        const taskList = document.getElementById("taskList");
+
+        function updateUI() {
+            renderTasks(taskList, taskManager.getAll(), id => {
+                taskManager.deleteTask(id);
+                updateUI();
+            });
+        }
+
+        form.addEventListener("submit", e => {
+            e.preventDefault();
+            taskManager.addTask(taskInput.value);
+            taskInput.value = "";
+            updateUI();
+        });
+
+        searchInput.addEventListener("input", () => {
+            const filtered = taskManager.filterTasks(searchInput.value);
+            renderTasks(taskList, filtered, id => {
+                taskManager.deleteTask(id);
+                updateUI();
+            });
+        });
+
+        // Первоначальная загрузка
+        updateUI();
+    </script>
+
+    <!-- ===============================
+         ЮНИТ-ТЕСТ (Jest) — можно вынести в репозиторий
+         =============================== -->
+    <script>
+/*
+========= tests/data.test.js ==========
+
+import { TaskManager } from "../index.html";
+
+test("Добавление задачи", () => {
+    const tm = new TaskManager();
+    const task = tm.addTask("test");
+    expect(task.text).toBe("test");
+});
+
+test("Удаление задачи", () => {
+    const tm = new TaskManager();
+    const task = tm.addTask("delete me");
+    tm.deleteTask(task.id);
+    expect(tm.getAll().find(t => t.id === task.id)).toBeUndefined();
+});
+
+test("Фильтрация задач", () => {
+    const tm = new TaskManager();
+    tm.addTask("apple");
+    tm.addTask("banana");
+    const result = tm.filterTasks("app");
+    expect(result.length).toBe(1);
+});
+*/
+    </script>
+
+</body>
+</html>
